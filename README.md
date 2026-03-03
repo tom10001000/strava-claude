@@ -1,6 +1,6 @@
 # strava-claude
 
-A personal MCP (Model Context Protocol) server that gives Claude access to your Strava training data. Built for use with Claude.ai and the Claude mobile app.
+A personal MCP (Model Context Protocol) server that gives Claude access to your Strava training data. Built for personal use with Claude.ai and the Claude mobile app.
 
 ---
 
