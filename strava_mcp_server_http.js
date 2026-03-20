@@ -70,16 +70,37 @@ function formatActivity(a, laps) {
 
 async function fetchStravaActivities(num = 20) {
   const token = await getAccessToken();
-  const activities = await stravaGet(token, `/athlete/activities?per_page=${num}`);
-  const lines = [`STRAVA ACTIVITIES — Last ${activities.length} activities\n`];
 
-  for (const a of activities) {
+  const perPage = 50;
+  const pages = Math.ceil(num / perPage);
+  let allActivities = [];
+
+  for (let page = 1; page <= pages; page++) {
+    const needed = num - allActivities.length;
+    const pageSize = Math.min(perPage, needed);
+
+    const batch = await stravaGet(token, `/athlete/activities?per_page=${pageSize}&page=${page}`);
+
+    if (!Array.isArray(batch) || batch.length === 0) break;
+
+    allActivities = allActivities.concat(batch);
+    if (allActivities.length >= num) break;
+
+    if (page < pages) await new Promise(r => setTimeout(r, 300));
+  }
+
+  const lines = [`STRAVA ACTIVITIES — Last ${allActivities.length} activities\n`];
+
+  for (let i = 0; i < allActivities.length; i++) {
+    const a = allActivities[i];
     const [detail, laps] = await Promise.all([
       stravaGet(token, `/activities/${a.id}`),
       stravaGet(token, `/activities/${a.id}/laps`),
     ]);
     a.description = detail.description;
     lines.push(formatActivity(a, laps));
+
+    if (i % 10 === 9) await new Promise(r => setTimeout(r, 500));
   }
 
   return lines.join('\n');
@@ -126,14 +147,10 @@ function createMCPServer() {
 const app = express();
 app.use(express.json());
 
-// No auth — Claude.ai's MCP client uses OAuth 2.0 which we haven't implemented.
-// This is a personal read-only tool so the risk is low.
-
-// MCP endpoint
 app.post('/mcp', async (req, res) => {
   const server = createMCPServer();
   const transport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: undefined, // stateless — no session tracking needed
+    sessionIdGenerator: undefined,
   });
 
   res.on('close', () => {
@@ -150,7 +167,6 @@ app.post('/mcp', async (req, res) => {
   }
 });
 
-// Health check (nginx uses this to verify the app is up)
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
 const PORT = process.env.PORT || 3000;
