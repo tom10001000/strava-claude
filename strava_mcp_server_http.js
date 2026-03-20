@@ -154,6 +154,6 @@ app.post('/mcp', async (req, res) => {
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, 'localhost', () => {
-  console.log(`Strava MCP server listening on localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Strava MCP server listening on 0.0.0.0:${PORT}`);
 });
